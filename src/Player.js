@@ -11,20 +11,20 @@ class Player {
     this.audio = {}
     this.hzHistory = []
     this.inputTypeList = {
-      "TRACK" : 0,
-      "STREAM" : 1,
-      "EXTERNAL" : 2,
+      TRACK: 0,
+      STREAM: 1,
+      EXTERNAL: 2,
     }
   }
 
-  createSourceFromAudioElement = (audioElement) => {
+  createSourceFromAudioElement = audioElement => {
     audioElement.setAttribute('rythm-connected', this.connectedSources.length)
     const source = this.audioCtx.createMediaElementSource(audioElement)
     this.connectedSources.push(source)
     return source
   }
 
-  connectExternalAudioElement = (audioElement) => {
+  connectExternalAudioElement = audioElement => {
     this.audio = audioElement
     this.currentInputType = this.inputTypeList['EXTERNAL']
     const connectedIndex = audioElement.getAttribute('rythm-connected')
@@ -36,23 +36,25 @@ class Player {
     this.connectSource(this.source)
   }
 
-  connectSource = (source) => {
+  connectSource = source => {
     source.connect(this.gain)
     this.gain.connect(Analyser.analyser)
-    if(this.currentInputType !== this.inputTypeList['STREAM']){
+    if (this.currentInputType !== this.inputTypeList['STREAM']) {
       Analyser.analyser.connect(this.audioCtx.destination)
-      this.audio.addEventListener("ended", this.stop)
+      this.audio.addEventListener('ended', this.stop)
+    } else {
+      Analyser.analyser.disconnect()
     }
   }
 
-  setMusic = (trackUrl) => {
+  setMusic = trackUrl => {
     this.audio = new Audio(trackUrl)
     this.currentInputType = this.inputTypeList['TRACK']
     this.source = this.createSourceFromAudioElement(this.audio)
     this.connectSource(this.source)
   }
 
-  setGain = (value) => {
+  setGain = value => {
     this.gain.gain.value = value
   }
 
@@ -66,10 +68,14 @@ class Player {
   }
 
   getMicrophoneStream = () => {
-    navigator.getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia)
+    navigator.getUserMedia =
+      navigator.getUserMedia ||
+      navigator.webkitGetUserMedia ||
+      navigator.mozGetUserMedia ||
+      navigator.msGetUserMedia
     return new Promise((resolve, reject) => {
       navigator.getUserMedia(
-        { audio:true },
+        { audio: true },
         medias => resolve(medias),
         error => reject(error)
       )
@@ -77,8 +83,13 @@ class Player {
   }
 
   start = () => {
-    if(this.currentInputType === this.inputTypeList['TRACK']){
-      this.audio.play()
+    if (this.currentInputType === this.inputTypeList['TRACK']) {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume()
+          .then(() => this.audio.play())
+      } else {
+        this.audio.play()
+      }
     }
   }
 
@@ -89,7 +100,6 @@ class Player {
       this.audio.getAudioTracks()[0].enabled = false
     }
   }
-
 }
 
 export default Player
